@@ -2,13 +2,12 @@
 
 import streamlit as st
 import pandas as pd
-import os
 import plotly.express as px
-from openai import OpenAI, AuthenticationError, RateLimitError
+import openai
+from openai import OpenAIError, AuthenticationError, RateLimitError
 
-# === API KEY ===
-API_KEY = "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"
-client = OpenAI(api_key=API_KEY)
+# === HARD-CODED API KEY (Use your own key if needed) ===
+openai.api_key = "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"
 
 # === STREAMLIT SETUP ===
 st.set_page_config(page_title="AI Lead Generator", page_icon="🤖")
@@ -42,16 +41,19 @@ def generate_message(company, product, region):
         f"The message should express interest in partnership and be warm but formal."
     )
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
+        response = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=prompt,
+            max_tokens=200,
             temperature=0.7
         )
-        return response.choices[0].message.content.strip()
+        return response["choices"][0]["text"].strip()
     except AuthenticationError:
         return "⚠️ Invalid API key. Please check your key and try again."
     except RateLimitError:
         return "⚠️ Rate limit exceeded. Please wait or upgrade your plan."
+    except OpenAIError as e:
+        return f"⚠️ OpenAI error: {str(e)}"
     except Exception as e:
         return f"⚠️ Unexpected error: {str(e)}"
 
@@ -59,6 +61,7 @@ def generate_message(company, product, region):
 required_cols = {"company_name", "product", "region"}
 if not required_cols.issubset(df.columns):
     st.error(f"Missing required columns: {required_cols - set(df.columns)}")
+    st.write("Available columns:", df.columns.tolist())
     st.stop()
 
 # === GENERATE MESSAGES ===
@@ -108,6 +111,7 @@ if "outreach_message" in df.columns:
     st.subheader("🧭 Region Share in Leads")
     pie_fig = px.pie(chart_data, names="region", values="message_count", title="Lead Distribution by Region")
     st.plotly_chart(pie_fig, use_container_width=True)
+
 
 
 
