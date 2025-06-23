@@ -24,10 +24,10 @@ if uploaded_file:
 else:
     st.info("Using sample data. Upload a CSV to override.")
     sample_data = {
-        "Company Name": ["GlobalTradeX", "AgroWorld", "Meditech"],
-        "Product": ["Solar Panels", "Organic Spices", "Medical Devices"],
-        "Region": ["Europe", "South Asia", "Middle East"],
-        "Email": ["contact@gtx.com", "info@agroworld.com", "hello@meditech.com"]
+        "Company Name": ["GlobalTradeX", "AgroWorld", "Meditech", "EcoSolutions"],
+        "Product": ["Solar Panels", "Organic Spices", "Medical Devices", "Eco-Friendly Packaging"],
+        "Region": ["Europe", "South Asia", "Middle East", "North America"],
+        "Email": ["contact@gtx.com", "info@agroworld.com", "hello@meditech.com", "eco@solutions.com"]
     }
     df = pd.DataFrame(sample_data)
 
@@ -72,29 +72,43 @@ if st.button("✉️ Generate Outreach Messages"):
             if "rate limit" in msg.lower():
                 error_flag = True
                 break
-        
+
         if error_flag:
             st.warning("⚠️ Generation stopped due to rate limit. Some rows may be incomplete.")
-            df = df.iloc[:len(messages)]  # trim to match
-        
+            df = df.iloc[:len(messages)]
+
         df["outreach_message"] = messages
         st.success("✅ Messages generated!")
 
 # === SHOW RESULTS ===
 if "outreach_message" in df.columns:
     st.subheader("📄 Leads and Generated Messages")
-    st.dataframe(df)
+
+    # Filter by region
+    regions = df["region"].unique().tolist()
+    selected_region = st.selectbox("Filter by Region", ["All"] + regions)
+    filtered_df = df if selected_region == "All" else df[df["region"] == selected_region]
+    st.dataframe(filtered_df)
 
     # === DOWNLOAD CSV ===
     csv = df.to_csv(index=False)
     st.download_button("⬇️ Download CSV", data=csv, file_name="outreach_messages.csv", mime="text/csv")
 
-    # === VISUALIZATION ===
+    # === STATS ===
+    st.markdown(f"**Total Messages Generated:** {len(df)}")
+
+    # === BAR CHART ===
     st.subheader("📊 Message Distribution by Region")
     chart_data = df.groupby("region").size().reset_index(name="message_count")
     fig = px.bar(chart_data, x="region", y="message_count", color="region",
                  title="Outreach Messages per Region", labels={"message_count": "Messages"})
     st.plotly_chart(fig, use_container_width=True)
+
+    # === PIE CHART ===
+    st.subheader("🧭 Region Share in Leads")
+    pie_fig = px.pie(chart_data, names="region", values="message_count", title="Lead Distribution by Region")
+    st.plotly_chart(pie_fig, use_container_width=True)
+
 
 
 
